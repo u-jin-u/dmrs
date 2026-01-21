@@ -30,17 +30,89 @@
 ### Description
 Connect to Meta Marketing API to pull advertising performance data for client accounts.
 
-### User Story
+### User Stories
+
+**US-F01-1: Connect Meta Ads Account**
+> As a manager, I want to connect a client's Meta Ads account via OAuth so that we can fetch their advertising data.
+
+**US-F01-2: Fetch Ad Performance Data**
 > As an analyst, I want the system to automatically fetch Meta Ads data so that I don't have to manually export and copy metrics.
 
-### Acceptance Criteria
-- [ ] OAuth 2.0 authentication with Meta
-- [ ] Fetch data for configured date range (current month, previous month)
-- [ ] Retrieve metrics: Spend, Impressions, Reach, Clicks, CTR
-- [ ] Support multiple ad accounts per client
-- [ ] Store data in database with timestamp
-- [ ] Handle API rate limits gracefully
-- [ ] Log all API calls for debugging
+**US-F01-3: View Historical Data**
+> As an analyst, I want to see current and previous month data so that I can include month-over-month comparisons in reports.
+
+### Acceptance Criteria (Given/When/Then)
+
+#### AC-F01-1: OAuth Connection
+```gherkin
+Given a manager is on the client configuration page
+And the client does not have Meta Ads connected
+When the manager clicks "Connect Meta Ads"
+Then the system redirects to Meta OAuth consent screen
+And upon approval, the ad account is linked to the client
+And a success message is displayed
+```
+
+#### AC-F01-2: Successful Data Fetch
+```gherkin
+Given a client has Meta Ads connected with valid credentials
+And the ad account has campaign data for January 2026
+When the system fetches data for period "2026-01"
+Then the following metrics are retrieved and stored:
+  | Metric      | Type    |
+  | Spend       | Decimal |
+  | Impressions | Integer |
+  | Reach       | Integer |
+  | Clicks      | Integer |
+  | CTR         | Decimal |
+And campaign-level breakdown is stored as JSON
+And fetched_at timestamp is recorded
+```
+
+#### AC-F01-3: Multiple Ad Accounts
+```gherkin
+Given a client has 3 Meta ad accounts configured
+When the system fetches data for period "2026-01"
+Then data is fetched for all 3 ad accounts
+And each account's data is stored separately
+And aggregated totals are available for reporting
+```
+
+#### AC-F01-4: Rate Limit Handling
+```gherkin
+Given the system is fetching Meta Ads data
+When the Meta API returns a 429 (rate limit) error
+Then the system waits for the specified retry-after duration
+And retries the request with exponential backoff
+And logs the rate limit event for monitoring
+```
+
+#### AC-F01-5: Token Refresh
+```gherkin
+Given a client's Meta access token has expired
+When the system attempts to fetch data
+Then the system automatically refreshes the token
+And continues with the data fetch
+And the new token is stored for future use
+```
+
+#### AC-F01-6: Connection Failure
+```gherkin
+Given a client's Meta connection is invalid (revoked permissions)
+When the system attempts to fetch data
+Then the fetch fails gracefully
+And the client is marked as "Meta connection error"
+And an alert is sent to the admin
+```
+
+#### AC-F01-7: No Data Available
+```gherkin
+Given a client has Meta Ads connected
+But the ad account has no campaigns for the requested period
+When the system fetches data for that period
+Then an empty result is stored (zeros for metrics)
+And no error is raised
+```
 
 ### Data Model
 ```
@@ -63,11 +135,13 @@ MetaAdsData {
 ### API Reference
 - Meta Marketing API v18.0+
 - Endpoints: `/act_{ad_account_id}/insights`
+- Scopes: `ads_read`, `ads_management`
 
 ### Technical Notes
 - Use long-lived tokens with refresh mechanism
 - Implement exponential backoff for rate limits
 - Cache data to avoid redundant calls
+- Store campaign-level data for detailed reports
 
 ---
 
@@ -76,16 +150,90 @@ MetaAdsData {
 ### Description
 Connect to GA4 Data API to pull website/app analytics data for client properties.
 
-### User Story
+### User Stories
+
+**US-F02-1: Connect Google Analytics Property**
+> As a manager, I want to connect a client's GA4 property via OAuth so that we can fetch their website analytics.
+
+**US-F02-2: Fetch Analytics Data**
 > As an analyst, I want the system to automatically fetch Google Analytics data so that I have complete marketing performance in one place.
 
-### Acceptance Criteria
-- [ ] OAuth 2.0 authentication with Google
-- [ ] Fetch data for configured date range
-- [ ] Retrieve metrics: Sessions, Users, Conversions, Traffic sources
-- [ ] Support multiple GA4 properties per client
-- [ ] Store data in database with timestamp
-- [ ] Handle API quota limits
+**US-F02-3: Traffic Source Breakdown**
+> As an analyst, I want to see traffic sources so that I can understand where visitors come from.
+
+### Acceptance Criteria (Given/When/Then)
+
+#### AC-F02-1: OAuth Connection
+```gherkin
+Given a manager is on the client configuration page
+And the client does not have Google Analytics connected
+When the manager clicks "Connect Google Analytics"
+Then the system redirects to Google OAuth consent screen
+And upon approval, the GA4 property is linked to the client
+And the property name is displayed in the client configuration
+```
+
+#### AC-F02-2: Successful Data Fetch
+```gherkin
+Given a client has Google Analytics connected with valid credentials
+And the GA4 property has data for January 2026
+When the system fetches data for period "2026-01"
+Then the following metrics are retrieved and stored:
+  | Metric      | Type    |
+  | Sessions    | Integer |
+  | Users       | Integer |
+  | New Users   | Integer |
+  | Conversions | Integer |
+And traffic source breakdown is stored as JSON
+And fetched_at timestamp is recorded
+```
+
+#### AC-F02-3: Traffic Sources Breakdown
+```gherkin
+Given a client has Google Analytics connected
+When the system fetches data for a period
+Then traffic sources are broken down by:
+  | Dimension      | Example Values           |
+  | Source/Medium  | google/organic, direct   |
+  | Channel        | Organic Search, Paid     |
+And each source includes session count and percentage
+```
+
+#### AC-F02-4: Multiple Properties
+```gherkin
+Given a client has 2 GA4 properties configured
+When the system fetches data for period "2026-01"
+Then data is fetched for both properties
+And each property's data is stored separately
+And aggregated totals are available for reporting
+```
+
+#### AC-F02-5: Quota Limit Handling
+```gherkin
+Given the system is fetching Google Analytics data
+When the GA4 API returns a quota exceeded error
+Then the system queues the request for later
+And logs the quota event for monitoring
+And retries after the quota reset window
+```
+
+#### AC-F02-6: Connection Revoked
+```gherkin
+Given a client's Google Analytics permission has been revoked
+When the system attempts to fetch data
+Then the fetch fails gracefully
+And the client is marked as "GA connection error"
+And an alert is sent to the admin
+```
+
+#### AC-F02-7: Property Has No Data
+```gherkin
+Given a client has Google Analytics connected
+But the property has no traffic for the requested period
+When the system fetches data for that period
+Then an empty result is stored (zeros for metrics)
+And no error is raised
+```
 
 ### Data Model
 ```
@@ -99,7 +247,10 @@ GAData {
   users: Integer
   new_users: Integer
   conversions: Integer
-  traffic_sources: JSON
+  traffic_sources: JSON [
+    { source: "google", medium: "organic", sessions: 1000, percentage: 45.5 },
+    { source: "direct", medium: "none", sessions: 500, percentage: 22.7 }
+  ]
   fetched_at: Timestamp
 }
 ```
@@ -107,45 +258,114 @@ GAData {
 ### API Reference
 - GA4 Data API v1
 - Method: `runReport`
+- Scopes: `https://www.googleapis.com/auth/analytics.readonly`
 
 ### Technical Notes
 - Use service account or OAuth depending on setup
 - Batch requests where possible
+- Store traffic sources as structured JSON for reporting
+- Consider caching to reduce API calls
 
 ---
 
 ## F03: Equals 5 Browser Automation
 
 ### Description
-Use BrowserMCP to automate login and data extraction from Equals 5 platform which has no API.
+Use Playwright browser automation to extract data from Equals 5 platform which has no API.
 
-### User Story
-> As an analyst, I want Equals 5 data pulled automatically so that I don't need to manually export and upload files.
+### User Stories
 
-### Acceptance Criteria
-- [ ] Automated login to Equals 5 with stored credentials
-- [ ] Navigate to reporting/data export section
-- [ ] Download XLSX or scrape data directly
-- [ ] Parse extracted data into standard format
-- [ ] Handle session timeouts and re-authentication
-- [ ] Retry failed extractions (max 3 attempts)
-- [ ] Capture screenshot on failure for debugging
-- [ ] Alert on extraction failure
-- [ ] Support MFA if required (manual intervention flow)
+**US-F03-1: Configure Equals 5 Credentials**
+> As an admin, I want to securely store Equals 5 credentials so that automation can log in.
+
+**US-F03-2: Automated Data Extraction**
+> As an analyst, I want Equals 5 data pulled automatically so that I don't need to manually export.
+
+**US-F03-3: Handle Extraction Failures**
+> As an admin, I want alerts when extraction fails so that I can fix the issue.
+
+### Verified Platform Details (January 2026)
+
+| Item | Value |
+|------|-------|
+| Login URL | `https://app.equals5.com/auth/sign-in` |
+| Post-login URL | `https://app.equals5.com/app/campaigns` |
+| Email selector | `input[type="email"]` |
+| Password selector | `input[type="password"]` |
+| Submit button | `button:has-text("Sign in")` |
+| Export button | `button:has-text("Export")` (top toolbar) |
+| Date Range button | `button:has-text("Date Range")` |
+
+### Available Metrics
+- Impressions, Identified Impressions
+- Clicks, Identified Clicks
+- Avg CTR, Reach
+- Visits: Media, Clicks: Media
+- Signals, Pacing
+
+### Acceptance Criteria (Given/When/Then)
+
+#### AC-F03-1: Successful Login
+```gherkin
+Given valid Equals 5 credentials are stored for a client
+When the system initiates data extraction
+Then the browser navigates to https://app.equals5.com/auth/sign-in
+And enters credentials using verified selectors
+And clicks Sign in button
+And URL changes to contain "/app/" indicating success
+```
+
+#### AC-F03-2: Successful Data Export
+```gherkin
+Given the system has logged into Equals 5
+When the system sets the date range and clicks Export
+Then data is downloaded and parsed
+And metrics are stored with extraction_status = "success"
+```
+
+#### AC-F03-3: Login Failure
+```gherkin
+Given invalid Equals 5 credentials
+When login fails
+Then a screenshot is captured for debugging
+And extraction_status is set to "failed"
+And an alert is sent to the admin
+```
+
+#### AC-F03-4: Retry on Failure
+```gherkin
+Given a transient failure occurs
+When the system retries (max 3 attempts)
+And all attempts fail
+Then extraction is marked "failed" with error details
+```
+
+#### AC-F03-5: Screenshot on Error
+```gherkin
+Given any extraction step fails
+Then a full-page screenshot is captured
+And the path is stored in debug_screenshot_path
+```
+
+#### AC-F03-6: UI Change Detection
+```gherkin
+Given an expected element is not found
+Then the operation fails with selector details
+And admin is alerted to update selectors
+```
 
 ### Automation Flow
 ```
-1. Launch headless browser
-2. Navigate to Equals 5 login page
-3. Enter credentials (from secure vault)
-4. Handle MFA if prompted (pause for manual entry or TOTP)
-5. Navigate to Reports → Export
-6. Select date range (current month)
-7. Click Export / Download XLSX
-8. Wait for download completion
-9. Parse XLSX file
-10. Store data in database
-11. Close browser session
+1. Launch Playwright (headless)
+2. Navigate to /auth/sign-in
+3. Enter email/password
+4. Click Sign in
+5. Wait for /app/ URL
+6. Click Date Range → set dates
+7. Click Export
+8. Download and parse file
+9. Store data
+10. Close browser
 ```
 
 ### Data Model
@@ -155,28 +375,32 @@ Equals5Data {
   client_id: UUID
   date_range_start: Date
   date_range_end: Date
-  raw_data: JSON (all metrics from export)
-  spend: Decimal (extracted)
-  impressions: Integer (extracted)
-  clicks: Integer (extracted)
-  extraction_status: Enum (success, failed, pending)
+  raw_data: JSON
+  impressions: Integer
+  clicks: Integer
+  avg_ctr: Decimal
+  reach: Integer
+  extraction_status: Enum (pending, success, failed)
   error_message: String (nullable)
-  screenshot_path: String (nullable, on failure)
+  debug_screenshot_path: String (nullable)
   fetched_at: Timestamp
 }
 ```
 
 ### Technical Notes
-- Use Playwright or Puppeteer via BrowserMCP
-- Run in isolated container/environment
-- Add random delays to mimic human behavior
-- Rotate user agents if needed
-- Store credentials encrypted (see F11)
+- Playwright verified working (January 2026 spike)
+- Selectors in `src/lib/integrations/equals5/types.ts`
+- Human-like delays (50-150ms between actions)
+- Screenshots saved to `./tmp/equals5/`
+- Credentials encrypted (see F11)
 
 ### Risks
-- UI changes can break automation
-- Platform may block automation
-- MFA adds complexity
+
+| Risk | Mitigation |
+|------|------------|
+| UI changes | Screenshot on failure, modular selectors |
+| Platform blocks automation | Human-like delays, user agent rotation |
+| MFA added | TOTP support planned |
 
 ---
 

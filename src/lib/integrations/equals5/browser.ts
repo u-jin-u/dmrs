@@ -16,7 +16,7 @@ const USER_AGENTS = [
 const DEFAULT_OPTIONS: Required<BrowserOptions> = {
   headless: true,
   slowMo: 50, // Adds delay between actions for human-like behavior
-  timeout: 30000,
+  timeout: 60000, // 60 second default timeout
 };
 
 /**

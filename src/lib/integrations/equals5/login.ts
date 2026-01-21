@@ -18,6 +18,7 @@ import {
 export async function navigateToLogin(page: Page): Promise<void> {
   await page.goto(EQUALS5_URLS.login, {
     waitUntil: "networkidle",
+    timeout: 60000, // 60 second timeout for slow connections
   });
 
   // Wait for the app to fully load (SPA)
@@ -90,17 +91,36 @@ export async function login(
       // await page.click(selectors.submitButton);
     }
 
-    // Check for error message
+    // Wait for SPA to settle after login attempt
+    await page.waitForTimeout(2000);
+
+    // First check if we're on the app pages (successful login)
+    const currentUrl = page.url();
+    const isOnAppPage = currentUrl.includes('/app/');
+
+    // If on app page, wait for campaigns to load (can take up to 10 seconds)
+    if (isOnAppPage) {
+      console.log("Logged in, waiting for campaigns to load...");
+      await page.waitForTimeout(10000);
+    }
+
+    if (isOnAppPage) {
+      // Successfully logged in - take screenshot and return
+      await takeScreenshot(page, screenshotPath, "04-post-login");
+      console.log("Login successful - on app page:", currentUrl);
+      return;
+    }
+
+    // If not on app page, check for error message
     const errorElement = await page.$(selectors.errorMessage);
     if (errorElement) {
       const errorText = await errorElement.textContent();
-      await takeScreenshot(page, screenshotPath, "03-login-error");
-      throw new LoginError(errorText || "Unknown login error");
+      // Ignore "No Campaigns" type messages - those mean we're logged in
+      if (errorText && !errorText.toLowerCase().includes('campaign')) {
+        await takeScreenshot(page, screenshotPath, "03-login-error");
+        throw new LoginError(errorText);
+      }
     }
-
-    // Verify successful login by checking for dashboard elements
-    // This will need adjustment based on actual Equals 5 post-login page
-    await page.waitForTimeout(2000); // Wait for SPA to settle
 
     // Take screenshot of post-login state
     await takeScreenshot(page, screenshotPath, "04-post-login");

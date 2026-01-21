@@ -83,13 +83,15 @@ export const SELECTORS = {
     userMenu: '.user-menu, [data-testid="user-menu"]',
   },
 
-  // Top toolbar - VERIFIED
+  // Top toolbar - VERIFIED (using more specific selectors)
   toolbar: {
     newCampaign: 'button:has-text("New Campaign")',
     duplicate: 'button:has-text("Duplicate")',
-    dateRange: 'button:has-text("Date Range")',
-    filters: 'button:has-text("Filters")',
-    export: 'button:has-text("Export")',
+    // Use text content match with the calendar icon parent
+    dateRange: 'text="Date Range"',
+    filters: 'text="Filters"',
+    // Export button in the top toolbar (not in campaign detail)
+    export: 'text="Export" >> nth=0',
   },
 
   // Date range picker (to be verified when clicking Date Range)

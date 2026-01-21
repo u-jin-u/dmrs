@@ -5,16 +5,19 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/db/client";
-
-// Simple encryption for demo - in production, use proper encryption
-function encrypt(data: string): string {
-  const key = process.env.ENCRYPTION_KEY || "default-dev-key-32chars!!";
-  // In production, use proper AES encryption
-  return Buffer.from(JSON.stringify({ data, key: key.slice(0, 8) })).toString("base64");
-}
+import { encrypt, isEncryptionConfigured } from "@/lib/utils/crypto";
 
 export async function POST(request: NextRequest) {
   try {
+    // Check encryption is configured
+    if (!isEncryptionConfigured()) {
+      console.error("ENCRYPTION_KEY not configured - cannot store credentials securely");
+      return NextResponse.json(
+        { error: "Server configuration error: encryption not configured" },
+        { status: 500 }
+      );
+    }
+
     const body = await request.json();
     const { clientId, platform, credentials } = body;
 
@@ -25,7 +28,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Encrypt credentials
+    // Encrypt credentials using AES-256-GCM
     const encryptedData = encrypt(JSON.stringify(credentials));
 
     // Upsert credential

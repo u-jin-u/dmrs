@@ -88,6 +88,7 @@ export async function getClientWithData(
   id: string,
   period?: { start: Date; end: Date }
 ): Promise<Client & {
+  credential: any | null;
   metaAdsData: any[];
   gaData: any[];
   equals5Data: any[];

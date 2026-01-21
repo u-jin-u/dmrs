@@ -22,8 +22,7 @@ export function CredentialManager({ clientId, hasCredential }: CredentialManager
     password: "",
   });
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async () => {
     setSaving(true);
     setError(null);
 
@@ -31,6 +30,7 @@ export function CredentialManager({ clientId, hasCredential }: CredentialManager
       const response = await fetch("/api/credentials", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({
           clientId,
           platform: "equals5",
@@ -64,6 +64,7 @@ export function CredentialManager({ clientId, hasCredential }: CredentialManager
     try {
       const response = await fetch(`/api/credentials/${clientId}`, {
         method: "DELETE",
+        credentials: "include",
       });
 
       if (!response.ok) {
@@ -79,9 +80,17 @@ export function CredentialManager({ clientId, hasCredential }: CredentialManager
     }
   };
 
+  const handleSaveClick = () => {
+    if (!formData.username.trim() || !formData.password.trim()) {
+      setError("Please enter both username and password");
+      return;
+    }
+    handleSubmit();
+  };
+
   if (showForm) {
     return (
-      <form onSubmit={handleSubmit} className="space-y-3 mt-3">
+      <div className="space-y-3 mt-3">
         {error && (
           <div className="p-2 bg-red-50 border border-red-200 rounded text-red-700 text-sm">
             {error}
@@ -93,8 +102,7 @@ export function CredentialManager({ clientId, hasCredential }: CredentialManager
             type="text"
             value={formData.username}
             onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-            className="w-full border rounded px-3 py-2 text-sm"
-            required
+            className="w-full border rounded px-3 py-2 text-sm text-gray-900"
           />
         </div>
         <div>
@@ -103,8 +111,7 @@ export function CredentialManager({ clientId, hasCredential }: CredentialManager
             type="password"
             value={formData.password}
             onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-            className="w-full border rounded px-3 py-2 text-sm"
-            required
+            className="w-full border rounded px-3 py-2 text-sm text-gray-900"
           />
         </div>
         <div className="flex gap-2">
@@ -119,14 +126,15 @@ export function CredentialManager({ clientId, hasCredential }: CredentialManager
             Cancel
           </button>
           <button
-            type="submit"
+            type="button"
+            onClick={handleSaveClick}
             disabled={saving}
             className="px-3 py-1.5 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
           >
             {saving ? "Saving..." : "Save Credentials"}
           </button>
         </div>
-      </form>
+      </div>
     );
   }
 

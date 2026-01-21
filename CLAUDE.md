@@ -123,6 +123,142 @@ Since Equals 5 has no API, we use browser automation:
 
 ---
 
+## System Agents
+
+The DMRS requires multiple automated agents to collect data, generate reports, and manage workflows. Below is a comprehensive list of all agents needed to create, test, and run the system.
+
+### Data Collection Agents
+
+| Agent | Purpose | Location | Trigger |
+|-------|---------|----------|---------|
+| **MetaAdsAgent** | Fetches campaign metrics from Meta Ads API (impressions, clicks, spend, conversions) | `lib/agents/meta-ads-agent.ts` | Scheduled / Manual |
+| **GoogleAnalyticsAgent** | Fetches GA4 data (sessions, users, conversions, traffic sources) | `lib/agents/ga-agent.ts` | Scheduled / Manual |
+| **Equals5Agent** | Browser automation to scrape Equals 5 platform data using Playwright | `lib/agents/equals5-agent.ts` | Scheduled / Manual |
+| **ScreenshotAgent** | Retrieves screenshots from client Google Drive folders | `lib/agents/screenshot-agent.ts` | On report generation |
+
+### Report Generation Agents
+
+| Agent | Purpose | Location | Trigger |
+|-------|---------|----------|---------|
+| **ReportOrchestratorAgent** | Coordinates the full report generation pipeline | `lib/agents/report-orchestrator.ts` | Manual / API call |
+| **DataAggregatorAgent** | Aggregates data from all sources, calculates MoM comparisons | `lib/agents/data-aggregator.ts` | During report generation |
+| **SlidesGeneratorAgent** | Creates Google Slides presentation from template with data and charts | `lib/agents/slides-generator.ts` | During report generation |
+| **ExcelGeneratorAgent** | Generates XLSX export with raw data tables | `lib/agents/excel-generator.ts` | During report generation |
+| **ChartRendererAgent** | Renders charts and visualizations for reports | `lib/agents/chart-renderer.ts` | During report generation |
+
+### Workflow & Delivery Agents
+
+| Agent | Purpose | Location | Trigger |
+|-------|---------|----------|---------|
+| **SchedulerAgent** | Manages scheduled data fetching (daily/weekly) for all clients | `lib/agents/scheduler-agent.ts` | Cron job |
+| **NotificationAgent** | Sends email notifications for workflow events (approval needed, delivered, failed) | `lib/agents/notification-agent.ts` | Workflow state change |
+| **DeliveryAgent** | Uploads completed reports to client's Google Drive delivery folder | `lib/agents/delivery-agent.ts` | On report approval |
+| **WorkflowAgent** | Manages report status transitions and enforces business rules | `lib/agents/workflow-agent.ts` | Status change request |
+
+### Monitoring & Health Agents
+
+| Agent | Purpose | Location | Trigger |
+|-------|---------|----------|---------|
+| **HealthCheckAgent** | Monitors API connectivity and credential validity | `lib/agents/health-check-agent.ts` | Scheduled (hourly) |
+| **RetryAgent** | Handles failed operations with exponential backoff | `lib/agents/retry-agent.ts` | On failure |
+| **AlertAgent** | Sends alerts for critical failures (credentials expired, API down) | `lib/agents/alert-agent.ts` | On critical error |
+| **AuditAgent** | Logs all agent activities for compliance and debugging | `lib/agents/audit-agent.ts` | All agent actions |
+
+### Testing Agents
+
+| Agent | Purpose | Location | Trigger |
+|-------|---------|----------|---------|
+| **MockDataAgent** | Generates realistic mock data for testing without API calls | `tests/agents/mock-data-agent.ts` | Test runs |
+| **IntegrationTestAgent** | Runs integration tests against real APIs (sandbox mode) | `tests/agents/integration-test-agent.ts` | CI/CD pipeline |
+| **E2ETestAgent** | Runs end-to-end tests for full report generation flow | `tests/agents/e2e-test-agent.ts` | CI/CD pipeline |
+| **BrowserTestAgent** | Tests Equals 5 automation with headful browser for debugging | `tests/agents/browser-test-agent.ts` | Manual debugging |
+| **RegressionAgent** | Compares generated reports against baseline for visual regression | `tests/agents/regression-agent.ts` | Before release |
+
+### Agent Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                      SchedulerAgent (Cron)                      │
+└─────────────────────────────┬───────────────────────────────────┘
+                              │ triggers
+        ┌─────────────────────┼─────────────────────┐
+        ▼                     ▼                     ▼
+┌───────────────┐   ┌─────────────────┐   ┌───────────────┐
+│ MetaAdsAgent  │   │ GoogleAnalytics │   │ Equals5Agent  │
+│               │   │     Agent       │   │  (Playwright) │
+└───────┬───────┘   └────────┬────────┘   └───────┬───────┘
+        │                    │                    │
+        └────────────────────┼────────────────────┘
+                             ▼
+                   ┌─────────────────┐
+                   │ DataAggregator  │◄─── ScreenshotAgent
+                   │     Agent       │
+                   └────────┬────────┘
+                            │
+              ┌─────────────┼─────────────┐
+              ▼             ▼             ▼
+     ┌────────────┐ ┌────────────┐ ┌────────────┐
+     │  Slides    │ │   Excel    │ │   Chart    │
+     │ Generator  │ │ Generator  │ │  Renderer  │
+     └─────┬──────┘ └─────┬──────┘ └────────────┘
+           │              │
+           └──────┬───────┘
+                  ▼
+         ┌───────────────┐
+         │ WorkflowAgent │
+         └───────┬───────┘
+                 │ on approval
+                 ▼
+         ┌───────────────┐      ┌───────────────────┐
+         │ DeliveryAgent │─────►│ NotificationAgent │
+         └───────────────┘      └───────────────────┘
+```
+
+### Agent Base Class
+
+All agents extend a common base class for consistency:
+
+```typescript
+// lib/agents/base-agent.ts
+abstract class BaseAgent {
+  abstract name: string;
+  abstract run(context: AgentContext): Promise<AgentResult>;
+
+  protected async retry<T>(fn: () => Promise<T>, maxAttempts: number): Promise<T>;
+  protected log(level: LogLevel, message: string, meta?: object): void;
+  protected async checkpoint(state: object): void;
+}
+```
+
+### Agent Configuration
+
+```typescript
+// config/agents.ts
+export const agentConfig = {
+  scheduler: {
+    dataFetchCron: "0 6 * * *",    // Daily at 6 AM
+    healthCheckCron: "0 * * * *",   // Hourly
+  },
+  retry: {
+    maxAttempts: 3,
+    backoffMs: 1000,
+    backoffMultiplier: 2,
+  },
+  equals5: {
+    timeout: 60000,
+    headless: true,
+    screenshotOnFailure: true,
+  },
+  notifications: {
+    onFailure: true,
+    onApprovalNeeded: true,
+    onDelivery: true,
+  },
+};
+```
+
+---
+
 ## Database Tables
 
 | Table | Purpose |
@@ -268,6 +404,7 @@ npm run equals5:test     # Test automation with headful browser
 | Version | Date | Changes |
 |---------|------|---------|
 | 1.0 | Jan 2026 | Initial document |
+| 1.1 | Jan 2026 | Added System Agents section (22 agents defined) |
 
 ---
 

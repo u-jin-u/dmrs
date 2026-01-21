@@ -39,6 +39,7 @@ export function NewReportForm({ clients, periods }: NewReportFormProps) {
       const response = await fetch("/api/reports", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({ clientId, period }),
       });
 

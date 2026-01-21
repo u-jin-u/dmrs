@@ -35,6 +35,7 @@ export function NewClientForm() {
       const response = await fetch("/api/clients", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({
           name: formData.name.trim(),
           industry: formData.industry.trim() || null,

@@ -6,6 +6,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { CredentialManager } from "@/components/clients/credential-manager";
 
 interface Client {
   id: string;
@@ -21,6 +22,7 @@ interface Client {
   logoUrl: string | null;
   primaryColor: string | null;
   secondaryColor: string | null;
+  credential?: { id: string } | null;
 }
 
 interface EditClientFormProps {
@@ -64,6 +66,7 @@ export function EditClientForm({ client }: EditClientFormProps) {
       const response = await fetch(`/api/clients/${client.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({
           name: formData.name.trim(),
           industry: formData.industry.trim() || null,
@@ -204,6 +207,20 @@ export function EditClientForm({ client }: EditClientFormProps) {
             Enable Equals 5 integration
           </label>
         </div>
+
+        {/* Equals 5 Credentials */}
+        {formData.equals5Enabled && (
+          <div className="mt-4 p-4 bg-gray-50 rounded-lg border">
+            <h4 className="text-sm font-medium text-gray-900 mb-2">Equals 5 Login Credentials</h4>
+            <p className="text-xs text-gray-500 mb-3">
+              Credentials are encrypted and stored securely for automated data extraction.
+            </p>
+            <CredentialManager
+              clientId={client.id}
+              hasCredential={!!client.credential}
+            />
+          </div>
+        )}
       </div>
 
       {/* Google Drive Configuration */}

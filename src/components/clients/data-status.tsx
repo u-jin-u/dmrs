@@ -27,7 +27,7 @@ export function DataStatusCard({ clientId }: DataStatusCardProps) {
 
   const fetchStatus = async () => {
     try {
-      const response = await fetch(`/api/data/${clientId}`);
+      const response = await fetch(`/api/data/${clientId}`, { credentials: "include" });
       if (response.ok) {
         const data = await response.json();
         setStatus(data.data.status);
@@ -44,6 +44,7 @@ export function DataStatusCard({ clientId }: DataStatusCardProps) {
     try {
       const response = await fetch(`/api/data/${clientId}/fetch`, {
         method: "POST",
+        credentials: "include",
       });
       if (response.ok) {
         // Refresh status after fetch

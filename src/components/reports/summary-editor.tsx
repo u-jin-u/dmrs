@@ -38,6 +38,7 @@ export function ExecutiveSummaryEditor({
       const response = await fetch(`/api/reports/${reportId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({ executiveSummary: summary }),
       });
 
@@ -100,7 +101,7 @@ export function ExecutiveSummaryEditor({
           <textarea
             value={summary}
             onChange={(e) => setSummary(e.target.value)}
-            className="w-full border rounded-md p-3 h-48 text-sm"
+            className="w-full border rounded-md p-3 h-48 text-sm text-gray-900"
             placeholder="Enter executive summary highlights, key metrics, and recommendations..."
           />
           <div className="flex gap-2 justify-end">

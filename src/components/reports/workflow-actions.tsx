@@ -28,6 +28,7 @@ export function ReportWorkflowActions({ reportId, currentStatus }: WorkflowActio
       const response = await fetch(`/api/reports/${reportId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({ action, ...extraData }),
       });
 
@@ -133,7 +134,7 @@ export function ReportWorkflowActions({ reportId, currentStatus }: WorkflowActio
               value={rejectReason}
               onChange={(e) => setRejectReason(e.target.value)}
               placeholder="Enter reason for rejection..."
-              className="w-full border rounded-md p-2 h-24 mb-4"
+              className="w-full border rounded-md p-2 h-24 mb-4 text-gray-900"
             />
             <div className="flex gap-3 justify-end">
               <button

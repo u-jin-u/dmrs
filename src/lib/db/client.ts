@@ -1,3 +1,10 @@
+/**
+ * Prisma Database Client
+ *
+ * Singleton pattern for Prisma client to avoid
+ * creating multiple connections in development
+ */
+
 import { PrismaClient } from "@prisma/client";
 
 const globalForPrisma = globalThis as unknown as {
@@ -13,6 +20,8 @@ export const prisma =
         : ["error"],
   });
 
-if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = prisma;
+if (process.env.NODE_ENV !== "production") {
+  globalForPrisma.prisma = prisma;
+}
 
 export default prisma;

@@ -199,17 +199,23 @@ function addComparisonSheet(
   const indicators = buildPerformanceIndicators(data.comparison);
 
   for (const indicator of indicators) {
+    let previousValue = "";
+    if (indicator.metric === "Total Spend") {
+      previousValue = `$${data.comparison.spendChange.previous.toLocaleString()}`;
+    } else if (indicator.metric === "CTR") {
+      previousValue = `${data.comparison.ctrChange.previous.toFixed(2)}%`;
+    } else if (indicator.metric === "Impressions") {
+      previousValue = data.comparison.impressionsChange.previous.toLocaleString();
+    } else if (indicator.metric === "Reach") {
+      previousValue = data.comparison.reachChange.previous.toLocaleString();
+    } else if (indicator.metric === "Clicks") {
+      previousValue = data.comparison.clicksChange.previous.toLocaleString();
+    }
+
     rows.push([
       indicator.metric,
       indicator.current,
-      // Parse previous value from comparison data
-      indicator.metric === "Total Spend"
-        ? `$${data.comparison.spendChange.previous.toLocaleString()}`
-        : indicator.metric === "CTR"
-        ? `${data.comparison.ctrChange.previous.toFixed(2)}%`
-        : data.comparison[
-            `${indicator.metric.toLowerCase().replace(" ", "")}Change` as keyof typeof data.comparison
-          ]?.previous?.toLocaleString() || "",
+      previousValue,
       indicator.change,
       indicator.direction === "up" ? "↑" : indicator.direction === "down" ? "↓" : "→",
     ]);

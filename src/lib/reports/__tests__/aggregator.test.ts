@@ -54,8 +54,8 @@ describe("Data Aggregation", () => {
           ctr: 2.5,
         },
       ],
-      dateStart: "2025-12-01",
-      dateEnd: "2025-12-31",
+      dateStart: new Date("2025-12-01"),
+      dateEnd: new Date("2025-12-31"),
       fetchedAt: new Date(),
     };
 
@@ -89,10 +89,11 @@ describe("Data Aggregation", () => {
       engagementRate: 0.65,
       bounceRate: 0.35,
       avgSessionDuration: 180,
+      eventsPerSession: 2.5,
       topPages: [],
       topSources: [],
-      dateStart: "2025-12-01",
-      dateEnd: "2025-12-31",
+      dateStart: new Date("2025-12-01"),
+      dateEnd: new Date("2025-12-31"),
       fetchedAt: new Date(),
     };
 
@@ -126,6 +127,7 @@ describe("Data Aggregation", () => {
       clicksMedia: 1500,
       signals: 10000,
       spend: 3500,
+      rawData: {},
       dateStart: new Date("2025-12-01"),
       dateEnd: new Date("2025-12-31"),
       extractedAt: new Date(),
@@ -282,8 +284,8 @@ describe("Data Aggregation", () => {
       clicks: 2500,
       ctr: 2.5,
       campaigns: [],
-      dateStart: "2025-12-01",
-      dateEnd: "2025-12-31",
+      dateStart: new Date("2025-12-01"),
+      dateEnd: new Date("2025-12-31"),
       fetchedAt: new Date(),
     };
 

@@ -35,6 +35,9 @@ tmp/
 temp/
 *.tmp
 
+# Equals 5 exploration output
+tmp/equals5*/
+
 # Playwright
 playwright-report/
 test-results/

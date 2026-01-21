@@ -6,66 +6,126 @@ This folder contains the BrowserMCP automation for Equals 5 platform.
 
 Equals 5 has no API. We use browser automation which is inherently fragile.
 
-## Files to Create
+## Quick Start
 
-- `browser.ts` - Playwright browser setup
-- `login.ts` - Login automation
-- `navigate.ts` - Navigation helpers
-- `extract.ts` - Data extraction logic
-- `parse.ts` - XLSX parsing
-- `types.ts` - Equals 5 data types
+### Step 1: Explore the UI
+
+Run the exploration script to discover the login page structure:
+
+```bash
+EQUALS5_USERNAME=your@email.com EQUALS5_PASSWORD=yourpassword npx tsx src/lib/integrations/equals5/explore.ts
+```
+
+This will:
+- Open a browser window (headed mode)
+- Navigate to Equals 5
+- Take screenshots at each step
+- Log all form fields, buttons, and links found
+- Keep the browser open for manual inspection
+
+Screenshots are saved to `./tmp/equals5-exploration/`
+
+### Step 2: Update Selectors
+
+Based on the exploration, update the selectors in `types.ts`:
+
+```typescript
+export const SELECTORS = {
+  login: {
+    emailInput: 'YOUR_SELECTOR_HERE',
+    passwordInput: 'YOUR_SELECTOR_HERE',
+    submitButton: 'YOUR_SELECTOR_HERE',
+    // ...
+  },
+  // ...
+};
+```
+
+### Step 3: Test Login
+
+```typescript
+import { testLogin } from './index';
+
+const result = await testLogin({
+  username: 'your@email.com',
+  password: 'yourpassword',
+});
+
+console.log(result.success ? 'Login successful!' : `Failed: ${result.error}`);
+```
+
+## Files
+
+| File | Purpose |
+|------|---------|
+| `types.ts` | Type definitions and UI selectors |
+| `errors.ts` | Custom error classes |
+| `browser.ts` | Playwright browser setup |
+| `login.ts` | Login automation |
+| `explore.ts` | UI exploration script |
+| `index.ts` | Main public API |
 
 ## Automation Flow
 
 ```
 1. Launch headless browser (Playwright)
-2. Navigate to Equals 5 login page
-3. Enter credentials (from encrypted vault)
-4. Handle MFA if required
-5. Navigate to Reports > Export
-6. Select date range
-7. Download XLSX export
-8. Parse XLSX data
-9. Store in database
+2. Navigate to https://app.equals5.com
+3. Wait for SPA to load
+4. Enter credentials
+5. Handle MFA if required
+6. Navigate to Reports/Export
+7. Set date range
+8. Download data (XLSX)
+9. Parse and return data
 10. Close browser
 ```
 
 ## Error Handling
 
-- Screenshot on failure (for debugging)
-- Retry up to 3 times
-- Alert on persistent failure
-- Graceful degradation (allow manual upload)
+All operations capture screenshots on failure:
 
-## Testing
+```typescript
+try {
+  const result = await fetchEquals5Data({
+    credentials: { username, password },
+    dateStart: new Date('2026-01-01'),
+    dateEnd: new Date('2026-01-31'),
+  });
+} catch (error) {
+  if (error instanceof Equals5Error) {
+    console.log('Screenshot at:', error.screenshotPath);
+  }
+}
+```
+
+## Debugging
+
+### Run in headed mode
 
 ```bash
-# Run with visible browser for debugging
-npm run equals5:test -- --headed
-
-# Test specific client
-npm run equals5:test -- --client=ClientName
+# The explore script always runs headed
+npx tsx src/lib/integrations/equals5/explore.ts
 ```
+
+### Check screenshots
+
+Screenshots are saved to `./tmp/equals5/` with timestamps:
+- `01-login-page-{timestamp}.png`
+- `02-credentials-entered-{timestamp}.png`
+- `error-login-{timestamp}.png` (on failure)
 
 ## Maintenance
 
 When Equals 5 UI changes:
-1. Run with `--headed` to see what changed
-2. Update selectors in `navigate.ts`
-3. Test all clients
-4. Document changes
 
-## Selectors (Update as needed)
+1. Run `explore.ts` to see the new UI
+2. Update selectors in `types.ts`
+3. Test login flow
+4. Test full extraction flow
+5. Update this README with any changes
 
-```typescript
-// These will need updating when UI changes
-const SELECTORS = {
-  loginForm: '#login-form',
-  usernameField: '#username',
-  passwordField: '#password',
-  submitButton: 'button[type="submit"]',
-  reportsMenu: '[data-nav="reports"]',
-  exportButton: '.export-btn',
-  // ... etc
-}
-```
+## Security Notes
+
+- Never commit credentials
+- Store credentials in `.env` file (git-ignored)
+- Use encrypted storage in production (see `Credential` model)

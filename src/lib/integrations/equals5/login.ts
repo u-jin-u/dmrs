@@ -3,7 +3,7 @@
  */
 
 import { Page } from "playwright";
-import { Equals5Credentials, SELECTORS } from "./types";
+import { Equals5Credentials, SELECTORS, EQUALS5_URLS } from "./types";
 import { LoginError, MfaRequiredError } from "./errors";
 import {
   waitForPageReady,
@@ -12,13 +12,11 @@ import {
   humanDelay,
 } from "./browser";
 
-const EQUALS5_BASE_URL = "https://app.equals5.com";
-
 /**
  * Navigate to the login page
  */
 export async function navigateToLogin(page: Page): Promise<void> {
-  await page.goto(EQUALS5_BASE_URL, {
+  await page.goto(EQUALS5_URLS.login, {
     waitUntil: "networkidle",
   });
 
@@ -128,14 +126,19 @@ export async function login(
  * Check if user is logged in
  */
 export async function isLoggedIn(page: Page): Promise<boolean> {
-  // Check for common logged-in indicators
-  // This will need adjustment based on actual Equals 5 UI
+  // Check URL first - if we're on the campaigns page, we're logged in
+  const currentUrl = page.url();
+  if (currentUrl.includes('/app/')) {
+    return true;
+  }
+
+  // Check for logged-in indicators (Export button, navigation, etc.)
   const indicators = [
-    SELECTORS.nav.dashboard,
-    SELECTORS.nav.reports,
+    SELECTORS.toolbar.export,
+    SELECTORS.toolbar.dateRange,
+    SELECTORS.nav.campaigns,
     'a[href*="logout"]',
-    ".user-menu",
-    ".avatar",
+    '.user-menu',
   ];
 
   for (const selector of indicators) {
